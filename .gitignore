@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+dist-server/
+release-artifacts/
+
+# Tauri builds
+src-tauri/target/
+src-tauri/gen/
+
+# Local Database & Backups
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.bak
+
+# Signing private keys (DO NOT COMMIT TO GIT)
+updater-key*
+*.key
+*.pub
+
+# Environment
+.env
+.env.local

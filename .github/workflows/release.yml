@@ -1,0 +1,127 @@
+name: Release TestNotes
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Web Frontend & Server
+        run: npm run build
+
+      - name: Configure updater endpoints with current repository
+        shell: pwsh
+        run: |
+          $repo = "${{ github.repository }}"
+          $configPath = "src-tauri/tauri.conf.json"
+          if (Test-Path $configPath) {
+            $content = Get-Content $configPath -Raw
+            $content = $content.Replace("{{owner}}/{{repo}}", $repo)
+            Set-Content $configPath $content
+            Write-Host "Configuré endpoints Tauri Updater pour : $repo"
+          }
+
+      - name: Build Tauri Windows Installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_KEY_PASSWORD }}
+        run: npx tauri build --target x86_64-pc-windows-msvc
+
+      - name: Prepare Release Artifacts (TestNotes-Setup.exe & latest.json)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "./release-artifacts"
+
+          # 1. Localiser l'installateur Windows généré par Tauri
+          $candidate = Get-ChildItem -Path "src-tauri/target" -Filter "*setup*.exe" -Recurse | Select-Object -First 1
+          if (-not $candidate) {
+            $candidate = Get-ChildItem -Path "src-tauri/target" -Filter "*.exe" -Recurse | Where-Object { $_.FullName -match "bundle" } | Select-Object -First 1
+          }
+
+          if ($candidate) {
+            Write-Host "Installateur trouvé : $($candidate.FullName)"
+            Copy-Item -Path $candidate.FullName -Destination "./release-artifacts/TestNotes-Setup.exe" -Force
+          } else {
+            Write-Error "Fichier d'installation Windows introuvable dans src-tauri/target !"
+            exit 1
+          }
+
+          # 2. Localiser ou générer latest.json pour le Tauri Updater
+          $latestJson = Get-ChildItem -Path "src-tauri/target" -Filter "latest.json" -Recurse | Select-Object -First 1
+          $sigFile = Get-ChildItem -Path "src-tauri/target" -Filter "*.sig" -Recurse | Select-Object -First 1
+          $sigContent = ""
+          if ($sigFile) {
+            $sigContent = (Get-Content $sigFile.FullName -Raw).Trim()
+          }
+
+          $rawTag = "${{ github.event.release.tag_name }}"
+          if (-not $rawTag) { $rawTag = "v1.0.0" }
+          $version = $rawTag.TrimStart("v")
+          $notes = "${{ github.event.release.body }}"
+          if (-not $notes) { $notes = "Publication de TestNotes version $version" }
+          $repo = "${{ github.repository }}"
+          $downloadUrl = "https://github.com/$repo/releases/download/$rawTag/TestNotes-Setup.exe"
+
+          if ($latestJson) {
+            Write-Host "Utilisation du latest.json généré par Tauri : $($latestJson.FullName)"
+            $jsonObj = Get-Content $latestJson.FullName -Raw | ConvertFrom-Json
+            if ($jsonObj.platforms.'windows-x86_64') {
+              $jsonObj.platforms.'windows-x86_64'.url = $downloadUrl
+            }
+            $jsonObj | ConvertTo-Json -Depth 10 | Set-Content "./release-artifacts/latest.json"
+          } else {
+            Write-Host "Création du manifeste latest.json pour GitHub Releases..."
+            $manifest = @{
+              version = $version
+              notes = $notes
+              pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+              platforms = @{
+                "windows-x86_64" = @{
+                  signature = $sigContent
+                  url = $downloadUrl
+                }
+              }
+            }
+            $manifest | ConvertTo-Json -Depth 10 | Set-Content "./release-artifacts/latest.json"
+          }
+
+          Write-Host "Artefacts prêts à être attachés à la Release :"
+          Get-ChildItem -Path "./release-artifacts"
+
+      - name: Attach TestNotes-Setup.exe & latest.json to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ./release-artifacts/TestNotes-Setup.exe
+            ./release-artifacts/latest.json
+          token: ${{ secrets.GITHUB_TOKEN }}

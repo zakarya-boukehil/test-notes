@@ -1,0 +1,63 @@
+{
+  "name": "test-notes",
+  "version": "1.0.0",
+  "description": "Mini-app Windows TestNotes (Node.js + Hono + Drizzle + better-sqlite3 + React + Vite + Tailwind + Tauri)",
+  "main": "dist-server/index.cjs",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,VITE\" -c \"cyan,magenta\" \"npm run dev:server\" \"npm run dev:vite\"",
+    "dev:server": "tsx server/index.ts",
+    "dev:vite": "vite",
+    "build:ui": "vite build",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist-server/index.cjs --external:better-sqlite3",
+    "build": "npm run build:ui && npm run build:server",
+    "tauri": "tauri",
+    "tauri:dev": "concurrently -n \"SERVER,TAURI\" -c \"cyan,green\" \"npm run dev:server\" \"tauri dev\"",
+    "tauri:build": "npm run build && tauri build",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx server/db/index.ts"
+  },
+  "keywords": [
+    "tauri",
+    "react",
+    "vite",
+    "tailwind",
+    "hono",
+    "drizzle",
+    "better-sqlite3",
+    "windows"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@hono/node-server": "^2.1.9",
+    "better-sqlite3": "^13.2.0",
+    "dotenv": "^18.0.10",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.19",
+    "lucide-react": "^1.75.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/cli": "^2.12.5",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "autoprefixer": "^10.6.2",
+    "concurrently": "^10.0.7",
+    "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
+    "postcss": "^8.5.33",
+    "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}
