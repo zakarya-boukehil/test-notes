@@ -12,13 +12,29 @@ export interface UpdateCheckResult {
 }
 
 const GITHUB_REPO = 'zakarya-boukehil/test-notes';
-const CURRENT_VERSION = '1.0.0';
+export const FALLBACK_APP_VERSION = '1.0.6';
 
 /**
  * Vérifie si l'environnement d'exécution est l'application native Tauri
  */
 export function isTauriEnvironment(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
+
+/**
+ * Récupère la version réelle de l'application (depuis Tauri API ou constante de repli)
+ */
+export async function getCurrentAppVersion(): Promise<string> {
+  if (isTauriEnvironment()) {
+    try {
+      const { getVersion } = await import('@tauri-apps/api/app');
+      const v = await getVersion();
+      if (v) return v;
+    } catch (e) {
+      console.warn('Impossible de récupérer la version depuis Tauri API:', e);
+    }
+  }
+  return FALLBACK_APP_VERSION;
 }
 
 /**
@@ -48,6 +64,7 @@ function isNewerVersion(latest: string, current: string): boolean {
  * Vérifie les mises à jour directement auprès de l'API GitHub Releases
  */
 export async function checkForAppUpdates(): Promise<UpdateCheckResult> {
+  const currentVersion = await getCurrentAppVersion();
   try {
     const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
       headers: {
@@ -59,7 +76,7 @@ export async function checkForAppUpdates(): Promise<UpdateCheckResult> {
       if (res.status === 404) {
         return {
           available: false,
-          currentVersion: CURRENT_VERSION,
+          currentVersion,
           error: "Aucune publication (Release) n'a encore été trouvée sur ce dépôt GitHub.",
         };
       }
@@ -81,16 +98,16 @@ export async function checkForAppUpdates(): Promise<UpdateCheckResult> {
     if (!exeAsset) {
       return {
         available: false,
-        currentVersion: CURRENT_VERSION,
+        currentVersion,
         error: `Une version ${release.tag_name} existe sur GitHub, mais aucun fichier .exe n'y est attaché.`,
       };
     }
 
-    const newer = isNewerVersion(latestVersion, CURRENT_VERSION);
+    const newer = isNewerVersion(latestVersion, currentVersion);
 
     return {
       available: newer,
-      currentVersion: CURRENT_VERSION,
+      currentVersion,
       version: latestVersion,
       releaseDate: release.published_at,
       body: release.body || 'Nouvelle mise à jour disponible sur GitHub Releases.',
@@ -98,11 +115,10 @@ export async function checkForAppUpdates(): Promise<UpdateCheckResult> {
       fileName: exeAsset.name,
     };
   } catch (err: any) {
-    console.error('[Updater] Erreur lors de la vérification :', err);
     return {
       available: false,
-      currentVersion: CURRENT_VERSION,
-      error: err?.message || 'Impossible de vérifier les mises à jour sur GitHub.',
+      currentVersion,
+      error: err?.message || 'Erreur inconnue lors de la vérification de mise à jour.',
     };
   }
 }

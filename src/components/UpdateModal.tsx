@@ -182,7 +182,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white">TestNotes est à jour !</h4>
                 <p className="text-xs text-slate-400 mt-1">
-                  Vous disposez de la version la plus récente : <span className="font-semibold text-slate-200">v1.0.0</span>.
+                  Vous disposez de la version la plus récente : <span className="font-semibold text-slate-200">v{result?.currentVersion || '1.0.6'}</span>.
                 </p>
               </div>
               <div className="pt-2">

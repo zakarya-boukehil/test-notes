@@ -5,7 +5,24 @@ import path from 'path';
 import fs from 'fs';
 
 // Configuration du répertoire des données
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
+function resolveDataDir(): string {
+  if (process.env.DATA_DIR) {
+    return process.env.DATA_DIR;
+  }
+  // En mode développement local (si package.json racine existe et hors production)
+  if (process.env.NODE_ENV !== 'production' && fs.existsSync(path.join(process.cwd(), 'package.json'))) {
+    return path.join(process.cwd(), 'data');
+  }
+  // En production / application Windows : toujours stocker dans AppData pour garantir les droits d'écriture et la persistance lors des mises à jour
+  const appData =
+    process.env.APPDATA ||
+    (process.platform === 'darwin'
+      ? path.join(process.env.HOME || '', 'Library', 'Application Support')
+      : path.join(process.env.HOME || '', '.config'));
+  return path.join(appData, 'TestNotes', 'data');
+}
+
+const DATA_DIR = resolveDataDir();
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'testnotes.db');
 
@@ -193,8 +210,14 @@ export async function initializeDatabase() {
 
   // Étape 2 : Migration Drizzle
   try {
-    const migrationsFolder = path.join(process.cwd(), 'drizzle');
-    if (fs.existsSync(migrationsFolder)) {
+    const candidateFolders = [
+      path.join(__dirname, 'drizzle'),
+      path.join(process.cwd(), 'drizzle'),
+      path.join(process.cwd(), 'dist-server', 'drizzle'),
+      path.join(path.dirname(__dirname), 'drizzle'),
+    ];
+    const migrationsFolder = candidateFolders.find((f) => fs.existsSync(f));
+    if (migrationsFolder) {
       console.log(`[Migration] Application des migrations Drizzle depuis ${migrationsFolder}...`);
       const sqlFiles = fs.readdirSync(migrationsFolder)
         .filter((file) => file.endsWith('.sql'))

@@ -8,6 +8,7 @@ interface HeaderProps {
   onCheckUpdates: () => void;
   isCheckingUpdates: boolean;
   onOpenBackups: () => void;
+  appVersion?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   onCheckUpdates,
   isCheckingUpdates,
   onOpenBackups,
+  appVersion,
 }) => {
   return (
     <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-6 py-4">
@@ -32,10 +34,10 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold tracking-tight text-white">TestNotes</h1>
-              {/* Badge Version 1.0.0 requis */}
+              {/* Badge Version dynamique */}
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 shadow-sm shadow-indigo-500/10">
                 <Sparkles className="w-3 h-3 text-indigo-400" />
-                Version 1.0.0
+                Version {appVersion || '1.0.6'}
               </span>
             </div>
             <p className="text-xs text-slate-400">

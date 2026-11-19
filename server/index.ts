@@ -24,7 +24,7 @@ app.use(
 app.get('/api/status', (c) => {
   return c.json({
     status: 'ok',
-    version: '1.0.0',
+    version: '1.0.6',
     app: 'TestNotes',
     timestamp: new Date().toISOString(),
     lastBackup: getLastBackupStatus(),

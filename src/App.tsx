@@ -6,7 +6,7 @@ import { UpdateModal } from './components/UpdateModal';
 import { BackupModal } from './components/BackupModal';
 import { Note, AppStatus } from './types';
 import { fetchNotes, createNote, deleteNote, fetchStatus } from './services/api';
-import { checkForAppUpdates, UpdateCheckResult } from './services/updater';
+import { checkForAppUpdates, getCurrentAppVersion, FALLBACK_APP_VERSION, UpdateCheckResult } from './services/updater';
 import { StickyNote, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -16,6 +16,7 @@ export const App: React.FC = () => {
   const [appStatus, setAppStatus] = useState<AppStatus | null>(null);
   const [serverOnline, setServerOnline] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string>(FALLBACK_APP_VERSION);
 
   // Modals state
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -24,10 +25,19 @@ export const App: React.FC = () => {
 
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
 
-  // Charger le statut du serveur et les notes
-  const loadData = useCallback(async () => {
-    setIsLoadingNotes(true);
-    setFetchError(null);
+  // Charger la version réelle de l'application
+  useEffect(() => {
+    getCurrentAppVersion().then((v) => {
+      if (v) setAppVersion(v);
+    });
+  }, []);
+
+  // Charger le statut du serveur et les notes avec retries automatiques au démarrage
+  const loadData = useCallback(async (retryCount = 0) => {
+    if (retryCount === 0) {
+      setIsLoadingNotes(true);
+      setFetchError(null);
+    }
     try {
       const [statusData, notesData] = await Promise.all([
         fetchStatus().catch(() => null),
@@ -44,14 +54,23 @@ export const App: React.FC = () => {
       }
 
       setNotes(notesData);
+      setFetchError(null);
+      setIsLoadingNotes(false);
     } catch (err: any) {
-      console.error('Erreur chargement données :', err);
+      console.warn(`[App] Tentative de connexion serveur (${retryCount + 1}/6)...`, err);
+      // Retries automatiques si le serveur Hono démarre
+      if (retryCount < 6) {
+        setTimeout(() => {
+          loadData(retryCount + 1);
+        }, 800);
+        return;
+      }
+
       setServerOnline(false);
+      setIsLoadingNotes(false);
       setFetchError(
         "Impossible de joindre le serveur Hono (port 3001). Assurez-vous que le backend SQLite / Hono est démarré."
       );
-    } finally {
-      setIsLoadingNotes(false);
     }
   }, []);
 
@@ -76,7 +95,7 @@ export const App: React.FC = () => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
   };
 
-  // Vérifier les mises à jour via Tauri Updater
+  // Vérifier les mises à jour via GitHub Releases
   const handleCheckUpdates = async () => {
     setIsCheckingUpdates(true);
     setIsUpdateModalOpen(true);
@@ -86,7 +105,7 @@ export const App: React.FC = () => {
     } catch (err: any) {
       setUpdateResult({
         available: false,
-        currentVersion: '1.0.0',
+        currentVersion: appVersion,
         error: err?.message || 'Erreur inconnue lors de la vérification.',
       });
     } finally {
@@ -96,13 +115,14 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-full flex flex-col bg-slate-950 text-slate-100">
-      {/* Header avec Badge "Version 1.0.0" et Bouton "Vérifier les mises à jour" */}
+      {/* Header avec Badge de Version et Bouton "Vérifier les mises à jour" */}
       <Header
         appStatus={appStatus}
         serverOnline={serverOnline}
         onCheckUpdates={handleCheckUpdates}
         isCheckingUpdates={isCheckingUpdates}
         onOpenBackups={() => setIsBackupModalOpen(true)}
+        appVersion={appVersion}
       />
 
       {/* Main Content */}

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "TestNotes",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "identifier": "com.testnotes.app",
   "build": {
     "frontendDist": "../dist",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "TestNotes - v1.0.0",
+        "title": "TestNotes - v1.0.6",
         "width": 1000,
         "height": 720,
         "minWidth": 800,
@@ -28,6 +28,9 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "resources": [
+      "../dist-server/**"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
