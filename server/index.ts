@@ -3,6 +3,10 @@ import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { desc, eq } from 'drizzle-orm';
 import { db, notes, initializeDatabase, performBackup, listBackups, getLastBackupStatus } from './db';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
+import { spawn } from 'node:child_process';
 
 const app = new Hono();
 
@@ -105,6 +109,67 @@ app.get('/api/backups', (c) => {
     return c.json({ success: true, backups });
   } catch (error) {
     return c.json({ success: false, error: 'Impossible de lister les sauvegardes' }, 500);
+  }
+});
+
+// Télécharger le Setup.exe depuis GitHub Releases
+app.post('/api/update/download', async (c) => {
+  try {
+    const body = await c.req.json();
+    const downloadUrl = body.downloadUrl;
+    const fileName = body.fileName || 'TestNotes-Setup.exe';
+
+    if (!downloadUrl) {
+      return c.json({ success: false, error: 'downloadUrl est requis' }, 400);
+    }
+
+    const tempDir = os.tmpdir();
+    const targetPath = path.join(tempDir, fileName);
+
+    console.log(`[Updater] Téléchargement depuis : ${downloadUrl}`);
+    console.log(`[Updater] Fichier cible : ${targetPath}`);
+
+    const res = await fetch(downloadUrl);
+    if (!res.ok) {
+      throw new Error(`Échec du téléchargement (${res.status} ${res.statusText})`);
+    }
+
+    const buffer = await res.arrayBuffer();
+    fs.writeFileSync(targetPath, Buffer.from(buffer));
+    console.log(`[Updater] Téléchargement terminé (${buffer.byteLength} octets)`);
+
+    return c.json({ success: true, filePath: targetPath, size: buffer.byteLength });
+  } catch (error: any) {
+    console.error('[Updater] Erreur téléchargement :', error);
+    return c.json({ success: false, error: error?.message || 'Erreur lors du téléchargement' }, 500);
+  }
+});
+
+// Exécuter l'installateur avec l'argument /S (mode silencieux NSIS)
+app.post('/api/update/execute', async (c) => {
+  try {
+    const body = await c.req.json();
+    const installerPath = body.installerPath;
+
+    if (!installerPath || !fs.existsSync(installerPath)) {
+      return c.json({ success: false, error: 'Installateur introuvable' }, 400);
+    }
+
+    console.log(`[Updater] Exécution de l'installateur : ${installerPath} /S`);
+    const child = spawn(installerPath, ['/S'], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+
+    setTimeout(() => {
+      process.exit(0);
+    }, 800);
+
+    return c.json({ success: true, message: 'Installateur lancé en mode silencieux' });
+  } catch (error: any) {
+    console.error('[Updater] Erreur exécution :', error);
+    return c.json({ success: false, error: error?.message || 'Erreur lancement installateur' }, 500);
   }
 });
 

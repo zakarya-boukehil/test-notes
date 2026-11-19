@@ -25,17 +25,8 @@
       "csp": null
     }
   },
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI5ODMwRTZFNjVDOTRBMEIKUldRTFNzbGxiZzZEdVFwM1lYR1c3S1JOTEljVXE3UFpkbXRSNTR3ZHU1ZzU0VjJsQXNQSnFZS0UK",
-      "endpoints": [
-        "https://github.com/zakarya-boukehil/test-notes/releases/latest/download/latest.json"
-      ]
-    }
-  },
   "bundle": {
     "active": true,
-    "createUpdaterArtifacts": true,
     "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",

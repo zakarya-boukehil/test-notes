@@ -4,13 +4,25 @@ use tauri::Manager;
 
 struct ServerProcess(Mutex<Option<Child>>);
 
+#[tauri::command]
+fn install_update(installer_path: String) -> Result<(), String> {
+    println!("[Tauri] Lancement de l'installateur : {} avec /S", installer_path);
+    std::process::Command::new(&installer_path)
+        .arg("/S")
+        .spawn()
+        .map_err(|e| format!("Impossible de démarrer l'installateur: {}", e))?;
+    
+    // Quitter l'application pour permettre au Setup d'écraser les fichiers
+    std::process::exit(0);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(ServerProcess(Mutex::new(None)))
         .plugin(tauri_plugin_log::Builder::default().build())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .invoke_handler(tauri::generate_handler![install_update])
         .setup(|app| {
             let app_handle = app.handle().clone();
             start_backend_server(&app_handle);

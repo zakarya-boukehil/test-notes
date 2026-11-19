@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, CheckCircle2, Download, AlertCircle, Loader2, Sparkles, RefreshCw } from 'lucide-react';
-import { UpdateCheckResult, installUpdateAndRelaunch } from '../services/updater';
+import { UpdateCheckResult, downloadAndExecuteInstaller } from '../services/updater';
 
 interface UpdateModalProps {
   isOpen: boolean;
@@ -18,30 +18,28 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   onRecheck,
 }) => {
   const [isInstalling, setIsInstalling] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState<{ downloaded: number; total?: number } | null>(null);
+  const [progressPercent, setProgressPercent] = useState<number>(0);
   const [installError, setInstallError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleInstall = async () => {
-    if (!result?.rawUpdate) return;
+    if (!result?.downloadUrl) return;
     setIsInstalling(true);
     setInstallError(null);
+    setProgressPercent(10);
 
     try {
-      await installUpdateAndRelaunch(result.rawUpdate, (downloaded, total) => {
-        setDownloadProgress({ downloaded, total });
-      });
+      await downloadAndExecuteInstaller(
+        result.downloadUrl,
+        result.fileName || 'TestNotes-Setup.exe',
+        (p) => setProgressPercent(p)
+      );
     } catch (err: any) {
       console.error(err);
       setInstallError(err?.message || 'Erreur lors du téléchargement de la mise à jour.');
       setIsInstalling(false);
     }
-  };
-
-  const calculatePercentage = () => {
-    if (!downloadProgress?.total || downloadProgress.total === 0) return null;
-    return Math.round((downloadProgress.downloaded / downloadProgress.total) * 100);
   };
 
   return (
@@ -71,7 +69,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                 Interrogation des GitHub Releases en cours...
               </p>
               <p className="text-xs text-slate-500">
-                Vérification du manifeste <code className="text-indigo-400">latest.json</code> via Tauri Updater
+                Vérification de la dernière version sur GitHub
               </p>
             </div>
           ) : result?.available ? (
@@ -105,13 +103,13 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
               {isInstalling && (
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs text-slate-400">
-                    <span>Téléchargement de TestNotes-Setup.exe...</span>
-                    <span>{calculatePercentage() !== null ? `${calculatePercentage()}%` : 'En cours...'}</span>
+                    <span>Téléchargement & installation silencieuse (/S)...</span>
+                    <span>{progressPercent}%</span>
                   </div>
                   <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-indigo-500 h-full transition-all duration-300 rounded-full"
-                      style={{ width: `${calculatePercentage() ?? 100}%` }}
+                      style={{ width: `${progressPercent}%` }}
                     />
                   </div>
                 </div>
@@ -139,12 +137,12 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   {isInstalling ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Installation...</span>
+                      <span>Installation en cours...</span>
                     </>
                   ) : (
                     <>
                       <Download className="w-3.5 h-3.5" />
-                      <span>Télécharger et redémarrer</span>
+                      <span>Mettre à jour</span>
                     </>
                   )}
                 </button>
@@ -155,18 +153,9 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
               <div className="flex items-start gap-3 p-3.5 bg-amber-950/30 border border-amber-800/50 rounded-2xl">
                 <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-1 text-xs">
-                  <h4 className="font-semibold text-amber-200">Information Updater</h4>
+                  <h4 className="font-semibold text-amber-200">Information</h4>
                   <p className="text-amber-300/80 leading-relaxed">{result.error}</p>
                 </div>
-              </div>
-
-              <div className="bg-slate-950/60 border border-slate-800 p-3 rounded-xl text-xs text-slate-400">
-                <p>
-                  Dans l&apos;installateur final Windows <span className="text-slate-200 font-mono">TestNotes-Setup.exe</span>, le plugin Tauri interroge automatiquement l&apos;URL configurée :
-                </p>
-                <code className="block mt-1.5 text-[11px] text-indigo-400 bg-slate-900 px-2 py-1 rounded break-all">
-                  github.com/.../releases/latest/download/latest.json
-                </code>
               </div>
 
               <div className="flex justify-between items-center pt-2">

@@ -108,24 +108,13 @@ L'installateur produit s'intitule `TestNotes-Setup.exe`.
 
 ---
 
-## 🔄 Configuration des Mises à Jour (Tauri Updater)
+## 🔄 Système de Mise à Jour Automatique
 
-Le système de mise à jour s'appuie sur la vérification cryptographique des binaires via `minisign` intégré dans Tauri v2.
+Le bouton **"Mettre à jour"** interroge directement les **GitHub Releases** du dépôt :
 
-1. **Clé publique configurée dans `src-tauri/tauri.conf.json`** :
-   ```json
-   "plugins": {
-     "updater": {
-       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI5ODMwRTZFNjVDOTRBMEIKUldRTFNzbGxiZzZEdVFwM1lYR1c3S1JOTEljVXE3UFpkbXRSNTR3ZHU1ZzU0VjJsQXNQSnFZS0UK",
-       "endpoints": [
-         "https://github.com/{{owner}}/{{repo}}/releases/latest/download/latest.json"
-       ]
-     }
-   }
-   ```
-2. **Secrets GitHub Actions requis** (dans **Settings > Secrets and variables > Actions**) :
-   - `TAURI_SIGNING_PRIVATE_KEY` : Contenu de la clé privée générée (`updater-key`).
-   - `TAURI_SIGNING_KEY_PASSWORD` : Mot de passe de la clé privée (`testnotes-secret-key`).
+1. Détection automatique de toute nouvelle version (`tag_name > version actuelle`).
+2. Téléchargement direct de l'exécutable `TestNotes-Setup.exe` depuis les assets de la dernière Release.
+3. Exécution de l'installateur avec l'argument `/S` (**mode silencieux NSIS**) et fermeture propre de l'application pour permettre le remplacement immédiat des fichiers sans friction.
 
 ---
 
@@ -135,9 +124,5 @@ Lorsqu'une nouvelle release est publiée sur GitHub (`release: types: [published
 
 1. Le runner `windows-latest` récupère le code et configure Node.js ainsi que la chaîne d'outils Rust MSVC.
 2. Les dépendances sont installées et le projet est compilé (`npm run build`).
-3. Les endpoints du Tauri Updater sont automatiquement reliés au dépôt GitHub actuel (`github.repository`).
-4. `tauri build` compile l'application et génère l'installateur NSIS avec sa signature cryptographique.
-5. Les deux fichiers requis sont préparés :
-   - `TestNotes-Setup.exe` : L'installateur Windows complet pour l'utilisateur.
-   - `latest.json` : Le manifeste de métadonnées pour le Tauri Updater (contenant la version, l'URL de téléchargement et la signature).
-6. Grâce à `permissions: contents: write`, l'action `softprops/action-gh-release@v2` attache automatiquement `TestNotes-Setup.exe` et `latest.json` à la Release GitHub publiée !
+3. `tauri build` compile l'application et génère l'installateur Windows NSIS (`TestNotes_*_x64-setup.exe`).
+4. L'installateur est automatiquement attaché à la Release GitHub publiée via l'action `softprops/action-gh-release@v2`. Aucune clé de signature ou fichier `latest.json` n'est nécessaire !
