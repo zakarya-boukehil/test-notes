@@ -23,7 +23,7 @@ pub fn run() {
                     if let Some(mut child) = lock.take() {
                         let _ = child.kill();
                     }
-                }
+                };
             }
         })
         .run(tauri::generate_context!())
@@ -68,7 +68,7 @@ fn start_backend_server(app_handle: &tauri::AppHandle) {
             let state = app_handle.state::<ServerProcess>();
             if let Ok(mut lock) = state.0.lock() {
                 *lock = Some(child);
-            }
+            };
         }
         Err(e) => {
             println!("[Tauri] Note: Serveur Node géré séparément ou introuvable : {}", e);
