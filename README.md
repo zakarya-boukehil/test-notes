@@ -1,6 +1,6 @@
 # 📝 TestNotes (Windows Desktop Mini-App)
 
-Mini-application Windows moderne pour la prise de notes, développée avec **React 19 + Vite + Tailwind CSS (v4)**, un backend local ultra-rapide **Node.js + Hono + Drizzle ORM + better-sqlite3**, et empaquetée en installateur Windows `.exe` via **Tauri v2**.
+Mini-application Windows moderne pour la prise de notes, développée avec **React 19 + Vite + Tailwind CSS (v4)**, un backend local ultra-rapide **Node.js + Hono + Drizzle ORM + node:sqlite (natif Node 22+)**, et empaquetée en installateur Windows `.exe` via **Tauri v2**.
 
 ---
 
@@ -10,10 +10,10 @@ Mini-application Windows moderne pour la prise de notes, développée avec **Rea
 - **Gestion des notes (SQLite locale)** :
   - Ajout rapide de notes (Titre & Contenu) avec raccourci clavier (<kbd>Ctrl</kbd> + <kbd>Entrée</kbd>).
   - Suppression de notes avec confirmation immédiate.
-  - Sauvegarde locale ultra-rapide avec `better-sqlite3` et schéma typé `Drizzle ORM`.
+  - Zéro compilation C++ / node-gyp : utilise le module natif `node:sqlite` de Node.js 22+.
 - **Sauvegarde automatique et migrations au démarrage** :
-  - **Sauvegarde auto** : À chaque lancement du serveur backend, une sauvegarde horodatée et cohérente de la base SQLite est créée dans `data/backups/testnotes_backup_startup_<timestamp>.db`.
-  - **Migrations Drizzle automatiques** : Drizzle vérifie et applique automatiquement les migrations de schéma au démarrage.
+  - **Sauvegarde auto** : À chaque lancement du serveur backend, une sauvegarde atomique (VACUUM INTO) est créée dans `data/backups/`.
+  - **Migrations Drizzle automatiques** : Drizzle et SQLite appliquent automatiquement les migrations au démarrage.
   - **Panneau de gestion des sauvegardes** : Possibilité de consulter l'historique des sauvegardes et de déclencher une sauvegarde manuelle à tout moment.
 - **Mise à jour en un clic (Tauri Updater)** :
   - Bouton **"Vérifier les mises à jour"** dans l'en-tête de l'application.

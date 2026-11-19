@@ -194,7 +194,7 @@ export const App: React.FC = () => {
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-800/60 py-4 px-6 text-center text-xs text-slate-500">
         <p>
-          TestNotes • Node.js + Hono + Drizzle ORM + better-sqlite3 + React + Vite + Tailwind + Tauri
+          TestNotes • Node.js + Hono + Drizzle ORM + node:sqlite + React + Vite + Tailwind + Tauri
         </p>
       </footer>
 

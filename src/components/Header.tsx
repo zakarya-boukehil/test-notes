@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Mini-application Windows sécurisée (Node.js • Hono • Drizzle • better-sqlite3 • Tauri)
+              Mini-application Windows sécurisée (Node.js • Hono • Drizzle • node:sqlite • Tauri)
             </p>
           </div>
         </div>
