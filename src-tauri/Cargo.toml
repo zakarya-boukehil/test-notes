@@ -1,6 +1,6 @@
 [package]
 name = "test-notes"
-version = "1.0.0"
+version = "1.0.6"
 description = "TestNotes Windows Mini-App"
 authors = ["Antigravity"]
 license = "MIT"
