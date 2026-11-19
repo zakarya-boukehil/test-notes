@@ -40,40 +40,12 @@ jobs:
         run: npm run build
 
       - name: Build Tauri Windows Installer
-        shell: pwsh
-        run: |
-          # S'assurer qu'aucune variable de signature n'est active
-          Remove-Item env:TAURI_SIGNING_PRIVATE_KEY -ErrorAction SilentlyContinue
-          Remove-Item env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
-          Remove-Item env:TAURI_SIGNING_KEY_PASSWORD -ErrorAction SilentlyContinue
-          npx tauri build --target x86_64-pc-windows-msvc
-
-      - name: Prepare Release Artifacts (TestNotes_*_x64-setup.exe)
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path "./release-artifacts"
-
-          # Localiser l'installateur Windows NSIS généré par Tauri
-          $candidate = Get-ChildItem -Path "src-tauri/target" -Filter "*setup*.exe" -Recurse | Select-Object -First 1
-          if (-not $candidate) {
-            $candidate = Get-ChildItem -Path "src-tauri/target" -Filter "*.exe" -Recurse | Where-Object { $_.FullName -match "bundle" } | Select-Object -First 1
-          }
-
-          if ($candidate) {
-            Write-Host "Installateur trouvé : $($candidate.FullName)"
-            Copy-Item -Path $candidate.FullName -Destination "./release-artifacts/$($candidate.Name)" -Force
-            Copy-Item -Path $candidate.FullName -Destination "./release-artifacts/TestNotes-Setup.exe" -Force
-          } else {
-            Write-Error "Fichier d'installation Windows introuvable dans src-tauri/target !"
-            exit 1
-          }
-
-          Write-Host "Fichiers prêts pour la Release :"
-          Get-ChildItem -Path "./release-artifacts"
+        run: npx tauri build --target x86_64-pc-windows-msvc
 
       - name: Attach Installer to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./release-artifacts/*setup*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe
           token: ${{ secrets.GITHUB_TOKEN }}
