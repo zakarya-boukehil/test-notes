@@ -40,7 +40,13 @@ jobs:
         run: npm run build
 
       - name: Build Tauri Windows Installer
-        run: npx tauri build --target x86_64-pc-windows-msvc
+        shell: pwsh
+        run: |
+          # S'assurer qu'aucune variable de signature n'est active
+          Remove-Item env:TAURI_SIGNING_PRIVATE_KEY -ErrorAction SilentlyContinue
+          Remove-Item env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue
+          Remove-Item env:TAURI_SIGNING_KEY_PASSWORD -ErrorAction SilentlyContinue
+          npx tauri build --target x86_64-pc-windows-msvc
 
       - name: Prepare Release Artifacts (TestNotes_*_x64-setup.exe)
         shell: pwsh
@@ -55,7 +61,6 @@ jobs:
 
           if ($candidate) {
             Write-Host "Installateur trouvé : $($candidate.FullName)"
-            # Conserver le nom original TestNotes_*_x64-setup.exe et une copie TestNotes-Setup.exe
             Copy-Item -Path $candidate.FullName -Destination "./release-artifacts/$($candidate.Name)" -Force
             Copy-Item -Path $candidate.FullName -Destination "./release-artifacts/TestNotes-Setup.exe" -Force
           } else {
